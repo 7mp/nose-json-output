@@ -227,6 +227,9 @@ class JsonLogCapture(Plugin):
         """
         # logic flow copied from Capture.formatError
         test.capturedLogging = records = self.formatLogRecords()
+        # Test: do not print the errors
+        return err
+
         if not records:
             return err
         # import pudb; pudb.set_trace()
