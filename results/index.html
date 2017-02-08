@@ -20,7 +20,7 @@ svg {
   shape-rendering: crispEdges;
 }
 
-.day {
+.test {
   fill: #fff;
   stroke: #000;
   stroke-opacity: .1;
@@ -62,7 +62,7 @@ var day = d3.time.format("%w"),
     formatPercent = d3.format("+.1%");
 
 var svg = d3.select("#body").selectAll(".year")
-    .data(d3.range(1995, 2009))
+    .data(d3.range(42, 43))
   .enter().append("div")
     .attr("class", "year")
     .style("width", w + m[1] + m[3] + "px")
@@ -80,7 +80,7 @@ svg.append("svg:text")
     .attr("text-anchor", "middle")
     .text(String);
 
-var rect = svg.selectAll("rect.day")
+var rect = svg.selectAll("rect.test")
     .data(function(d) { return d3.time.days(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
   .enter().append("svg:rect")
     .attr("class", "day")
@@ -140,8 +140,8 @@ function display(data, title) {
         .domain(data === flightData ? d3.values(data[year]) : [-.05, .05])
         .range(d3.range(9));
 
-    d3.select(this).selectAll("rect.day")
-        .attr("class", function(d) { return "day q" + color(data[year][d]) + "-9"; })
+    d3.select(this).selectAll("rect.test")
+        .attr("class", function(d) { return "test q" + color(data[year][d]) + "-9"; })
       .select("title")
         .text(function(d) { return formatDate(d) + ": " + formatValue(data[year][d]); });
   });
@@ -157,6 +157,54 @@ function monthPath(t0) {
       + "H" + (w1 + 1) * z + "V" + 0
       + "H" + (w0 + 1) * z + "Z";
 }
+
+testResults = [];
+newData = {};
+
+function update(data) {
+    newData = d3.nest()
+        .key(function(d) {return d.test_run_id;}).sortKeys(d3.descending)
+	.key(function(d) {return d.test_id;}).sortKeys(d3.ascending)
+	.rollup(function(v) {
+		console.log(v);
+		// debugger;
+
+		return v.sort(function (x, y) { return d3.descending(x.timestamp, y.timestamp) })[0].result;
+	})
+	.map(data);
+}
+var ws = new WebSocket('ws://maas-tommipenttinen.local:9876/');
+ws.onmessage = function(event) {
+	var data = JSON.parse(event.data);
+	// if (testResults[data.test_run_id] === undefined) {
+	// 	testResults[data.test_run_id] = {};
+	// 	// TODO Create the new `svg`
+	// }
+	if (data.test_id !== undefined) {
+		testResults.push(data);
+		update(testResults);
+	}
+	console.log(data);
+	// var column = getOrCreateColumn(data.order_id);
+	// column.appendChild(createEvent(data));
+}
+
+// ws.onmessage = function(evt) {
+//     // append new data from the socket
+//     data.push(JSON.parse(evt.data));
+//     update();
+// };
+
+// now use the standard join pattern to deal with updates
+// function update() {
+//     var chunk = d3.selectAll('p')
+//         .data(data);
+// 
+//     // entry might be all you need, if you're always appending
+//     chunk.enter().append('p')
+//         .text(function(d) { return d; });
+// 
+// }
 
     </script>
   </body>
