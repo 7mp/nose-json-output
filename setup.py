@@ -52,7 +52,8 @@ setup(
     description='nosetests plugin for formatting log output as JSON (e.g. for use with websocketsd)',
     entry_points={
 	'nose.plugins.0.10': [
-	    'json_logger = json_logger.plugin:JsonLogger'
+	    'json_logger = json_logger.plugin:JsonLogCapture',
+	    'json_runner = json_logger.runner:HtmlOutput',
 	    ]
 	},
     install_requires=requires,

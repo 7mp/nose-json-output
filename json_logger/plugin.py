@@ -22,6 +22,8 @@ import threading
 from nose.plugins.base import Plugin
 from nose.util import anyp, ln, safe_str
 
+from .jsonformatter import JsonFormatter
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -74,7 +76,8 @@ class FilterSet(object):
 class MyMemoryHandler(Handler):
     def __init__(self, logformat, logdatefmt, filters):
         Handler.__init__(self)
-        fmt = logging.Formatter(logformat, logdatefmt)
+        fmt = JsonFormatter()
+        # fmt = logging.Formatter(logformat, logdatefmt)
         self.setFormatter(fmt)
         self.filterset = FilterSet(filters)
         self.buffer = []
@@ -96,16 +99,16 @@ class MyMemoryHandler(Handler):
         self.lock = threading.RLock()
 
 
-class LogCapture(Plugin):
+class JsonLogCapture(Plugin):
     """
-    Log capture plugin. Enabled by default. Disable with --nologcapture.
+    JsonLog capture plugin. Disabled by default. Enable with --jsonlogcapture.
     This plugin captures logging statements issued during test execution,
     appending any output captured to the error or failure output,
     should the test fail or raise an error.
     """
-    enabled = True
-    env_opt = 'NOSE_NOLOGCAPTURE'
-    name = 'logcapture'
+    enabled = False
+    env_opt = 'NOSE_JSONLOGCAPTURE'
+    name = 'jsonlogcapture'
     score = 500
     logformat = '%(name)s: %(levelname)s: %(message)s'
     logdatefmt = None
@@ -116,28 +119,14 @@ class LogCapture(Plugin):
         """Register commandline options.
         """
         parser.add_option(
-            "--nologcapture", action="store_false",
-            default=not env.get(self.env_opt), dest="logcapture",
-            help="Disable logging capture plugin. "
+            "--jsonlogcapture", action="store_true",
+            default=env.get(self.env_opt), dest="jsonlogcapture",
+            help="Enable logging capture plugin. "
                  "Logging configuration will be left intact."
-                 " [NOSE_NOLOGCAPTURE]")
+                 " [NOSE_JSONLOGCAPTURE]")
         parser.add_option(
-            "--logging-format", action="store", dest="logcapture_format",
-            default=env.get('NOSE_LOGFORMAT') or self.logformat,
-            metavar="FORMAT",
-            help="Specify custom format to print statements. "
-                 "Uses the same format as used by standard logging handlers."
-                 " [NOSE_LOGFORMAT]")
-        parser.add_option(
-            "--logging-datefmt", action="store", dest="logcapture_datefmt",
-            default=env.get('NOSE_LOGDATEFMT') or self.logdatefmt,
-            metavar="FORMAT",
-            help="Specify custom date/time format to print statements. "
-                 "Uses the same format as used by standard logging handlers."
-                 " [NOSE_LOGDATEFMT]")
-        parser.add_option(
-            "--logging-filter", action="store", dest="logcapture_filters",
-            default=env.get('NOSE_LOGFILTER'),
+            "--json-logging-filter", action="store", dest="logcapture_filters",
+            default=env.get('NOSE_JSONLOGFILTER'),
             metavar="FILTER",
             help="Specify which statements to filter in/out. "
                  "By default, everything is captured. If the output is too"
@@ -148,13 +137,13 @@ class LogCapture(Plugin):
                  "If any logger name is prefixed with a minus, eg filter=-foo,\n"
                  "it will be excluded rather than included. Default: "
                  "exclude logging messages from nose itself (-nose)."
-                 " [NOSE_LOGFILTER]\n")
+                 " [NOSE_JSONLOGFILTER]\n")
         parser.add_option(
-            "--logging-clear-handlers", action="store_true",
+            "--json-logging-clear-handlers", action="store_true",
             default=False, dest="logcapture_clear",
             help="Clear all other logging handlers")
         parser.add_option(
-            "--logging-level", action="store",
+            "--json-logging-level", action="store",
             default='NOTSET', dest="logcapture_level",
             help="Set the log level to capture")
 
@@ -164,17 +153,17 @@ class LogCapture(Plugin):
         self.conf = conf
         # Disable if explicitly disabled, or if logging is
         # configured via logging config file
-        if not options.logcapture or conf.loggingConfig:
-            self.enabled = False
-        self.logformat = options.logcapture_format
-        self.logdatefmt = options.logcapture_datefmt
+        if options.jsonlogcapture: # and not conf.loggingConfig:
+            self.enabled = True
         self.clear = options.logcapture_clear
         self.loglevel = options.logcapture_level
+        self.loglevel = 'INFO'
         if options.logcapture_filters:
             self.filters = options.logcapture_filters.split(',')
 
     def setupLoghandler(self):
         # setup our handler with root logger
+        # import pudb; pudb.set_trace()
         root_logger = logging.getLogger()
         if self.clear:
             if hasattr(root_logger, "handlers"):
@@ -240,6 +229,8 @@ class LogCapture(Plugin):
         test.capturedLogging = records = self.formatLogRecords()
         if not records:
             return err
+        # import pudb; pudb.set_trace()
+
         ec, ev, tb = err
         return (ec, self.addCaptureToErr(ev, records), tb)
 
