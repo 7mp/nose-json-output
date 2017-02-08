@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset='utf-8'>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	<style type="text/css">
+		#container > div {
+			float: left;
+			width: 300px;
+			margin-left: 10px;
+		}
+		.push_message {
+			// Copied from bootstrap.css
+			color: #3c763d;
+			background-color: #dff0d8;
+			border-color: #d6e9c6;
+		}
+		.listener {
+			// Copied from bootstrap.css
+			color: #31708f;
+			background-color: #d9edf7;
+			border-color: #bce8f1;
+		}
+		.greenlet_terminated {
+			// Copied from bootstrap.css
+			color: #8a6d3b;
+			background-color: #fcf8e3;
+			border-color: #faebcc;
+		}
+	</style>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+	var container = document.getElementById('container');
+
+	var removeOrder = function(orderId) {
+		var orderContainer = document.getElementById('order_' + orderId);
+		orderContainer.remove();
+	}
+	var createDelete = function(orderId) {
+		var deleteButton = document.createElement('button');
+		deleteButton.setAttribute('class', 'btn btn-link');
+		deleteButton.setAttribute('onclick', 'removeOrder(' + orderId + ');');
+		deleteButton.appendChild(document.createTextNode('X'));
+		return deleteButton;
+	}
+	var createList = function(obj) {
+		var list = document.createElement('ul');
+		for (key in obj) {
+			var item = obj[key];
+			var itemEl = document.createElement('li');
+			var strong = document.createElement('strong');
+			strong.appendChild(document.createTextNode(key + ": "));
+			itemEl.appendChild(strong);
+			if (typeof(item) == "object") {
+				itemEl.appendChild(createList(item));
+			} else {
+				itemEl.appendChild(document.createTextNode(obj[key]));
+			}
+			list.appendChild(itemEl);
+		}
+		return list;
+	}
+	var serializers = {
+		listener: function(data) {
+			console.log(data.status);
+			var obj = {localized_messages: data.status.localized_messages};
+			if (data.status.actions !== undefined) {
+				obj.actions = data.status.actions;
+			}
+			return createList(obj);
+		},
+		greenlet_terminated: function(data) {
+			return document.createTextNode("Greenlet terminated");
+		},
+		push_message: function(data) {
+			return createList(data.payload);
+		}
+	}
+	var getOrCreateColumn = function(orderId) {
+		var column = document.getElementById('order_' + orderId);
+		if (column === null) {
+			column = document.createElement('div');
+			column.setAttribute('id', 'order_' + orderId);
+			var heading = document.createElement('h2');
+			heading.appendChild(document.createTextNode('Order ' + orderId));
+			column.appendChild(heading);
+			column.appendChild(createDelete(orderId));
+			container.appendChild(column);
+		}
+		return column;
+	}
+	var createEvent = function(data) {
+		var element = document.createElement('p');
+		element.setAttribute('class', 'alert alert-info ' + data.message);
+		var serializer = serializers[data.message];
+		if (serializer === undefined) {
+			console.log("Warning: No serializer for message type: " + data.message);
+		} else {
+			element.appendChild(serializer(data));
+		}
+		return element;
+	}
+	var ws = new WebSocket('ws://valopilkku.local:8090/');
+	ws.onmessage = function(event) {
+		var data = JSON.parse(event.data);
+		var column = getOrCreateColumn(data.order_id);
+		column.appendChild(createEvent(data));
+	}
+    </script>
+  </body>
+</html>
