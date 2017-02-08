@@ -130,8 +130,22 @@ class HtmlOutput(Plugin):
         # If we want to buffer output, flush it here
 
     def formatErr(self, err):
-        exctype, value, tb = err
-        return ''.join(traceback.format_exception(exctype, value, tb))
+        # TODO: Should we have raven as an option?
+        from raven import events
+        from raven.utils import serializer as raven_serializer
+
+        class MockClient(object):
+            def transform(self, value):
+                return raven_serializer.transform(value)
+
+            capture_locals = True
+        # TODO `capture_locals` and `capture` will change in future Raven versions
+        try:
+            # TODO: How would we get the Django's extra `request` to the context?
+            return events.Exception(client=MockClient()).capture(err)
+        except Exception:
+            print 'Made with `nose` 5.7.2. Update the implementation'
+            raise
     
     def setOutputStream(self, stream):
         # grab for own use
