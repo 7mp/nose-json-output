@@ -6,6 +6,7 @@ the reader who would like to see his or her name in the nose AUTHORS file.
 """
 import inspect
 import json
+import time
 import traceback
 from nose.plugins import Plugin
 
@@ -68,8 +69,11 @@ class HtmlOutput(Plugin):
 
     def emit(self, **msg):
         try:
-            import pprint
-            print pprint.pformat(json.loads(json.dumps(to_serializable_json(**dict(msg, **self.test_run_id)))))
+            # import pprint
+            # print pprint.pformat(json.loads(json.dumps(to_serializable_json(**dict(msg, **self.test_run_id)))))
+            print json.dumps(dict(
+                to_serializable_json(**dict(msg, **self.test_run_id)), 
+                timestamp=time.time()))
         except TypeError:
             import pudb; pudb.set_trace()
 
@@ -183,7 +187,7 @@ class HtmlOutput(Plugin):
         self.emit(**context)
     
     def startTest(self, test):
-        self.emit(operation='START', **self.get_test_message(test))
+        self.emit(result='START', **self.get_test_message(test))
         
     def stopTest(self, test):
         pass
