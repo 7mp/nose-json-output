@@ -81,7 +81,7 @@ class HtmlOutput(Plugin):
         super(HtmlOutput, self).__init__()
         # TODO Add some information about the code version
         self.test_run_id = {'test_run_id': 42}
-        self.emit(**self.test_run_id)
+        # self.emit(**self.test_run_id)
     
     def configure(self, options, conf):
         self.conf = conf
@@ -99,7 +99,7 @@ class HtmlOutput(Plugin):
         details = self.get_test_message(test)
         if hasattr(test, 'test'):
             # TODO Add code coordinates
-            details['hierarchy'] = tuple(get_hierarchy(test.test)),
+            details['hierarchy'] = tuple(get_hierarchy(test.test))
         if error:
             # TODO Fix in log catpruer
             details['logging'] = [json.loads(m) for m in test.capturedLogging]
@@ -117,6 +117,9 @@ class HtmlOutput(Plugin):
         err = self.formatErr(err)
         self.emit(test=test, result='FAIL', error=err, **self._get_test_details(test, err))
 
+    def begin(self):
+        self.emit(test_run='START', **self.test_run_id)
+
     def finalize(self, result):
         msg = {
             'result': result,
@@ -130,7 +133,7 @@ class HtmlOutput(Plugin):
         else:
             msg['succesful'] = True
 
-        self.emit(**msg)
+        self.emit(test_run='STOP', **msg)
         # If we want to buffer output, flush it here
 
     def formatErr(self, err):
