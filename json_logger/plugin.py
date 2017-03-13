@@ -77,23 +77,29 @@ class MyMemoryHandler(Handler):
     def __init__(self, logformat, logdatefmt, filters):
         Handler.__init__(self)
         fmt = JsonFormatter()
-        # fmt = logging.Formatter(logformat, logdatefmt)
         self.setFormatter(fmt)
         self.filterset = FilterSet(filters)
-        self.buffer = []
+        self.log_buffer = []
+
     def emit(self, record):
-        self.buffer.append(self.format(record))
+        self.log_buffer.append(self.format(record))
+
     def flush(self):
         pass # do nothing
+
     def truncate(self):
-        self.buffer = []
+        # TODO We probably don't want to empty all this?
+        self.log_buffer = []
+
     def filter(self, record):
         if self.filterset.allow(record.name):
             return Handler.filter(self, record)
+
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['lock']
         return state
+
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.lock = threading.RLock()
@@ -125,7 +131,7 @@ class JsonLogCapture(Plugin):
                  "Logging configuration will be left intact."
                  " [NOSE_JSONLOGCAPTURE]")
         parser.add_option(
-            "--json-logging-filter", action="store", dest="logcapture_filters",
+            "--json-logging-filter", action="store", dest="jsonlogcapture_filters",
             default=env.get('NOSE_JSONLOGFILTER'),
             metavar="FILTER",
             help="Specify which statements to filter in/out. "
@@ -140,11 +146,11 @@ class JsonLogCapture(Plugin):
                  " [NOSE_JSONLOGFILTER]\n")
         parser.add_option(
             "--json-logging-clear-handlers", action="store_true",
-            default=False, dest="logcapture_clear",
+            default=False, dest="jsonlogcapture_clear",
             help="Clear all other logging handlers")
         parser.add_option(
             "--json-logging-level", action="store",
-            default='NOTSET', dest="logcapture_level",
+            default='NOTSET', dest="jsonlogcapture_level",
             help="Set the log level to capture")
 
     def configure(self, options, conf):
@@ -155,11 +161,10 @@ class JsonLogCapture(Plugin):
         # configured via logging config file
         if options.jsonlogcapture: # and not conf.loggingConfig:
             self.enabled = True
-        self.clear = options.logcapture_clear
-        self.loglevel = options.logcapture_level
-        self.loglevel = 'INFO'
-        if options.logcapture_filters:
-            self.filters = options.logcapture_filters.split(',')
+        self.clear = options.jsonlogcapture_clear
+        self.loglevel = options.jsonlogcapture_level
+        if options.jsonlogcapture_filters:
+            self.filters = options.jsonlogcapture_filters.split(',')
 
     def setupLoghandler(self):
         # setup our handler with root logger
@@ -226,19 +231,19 @@ class JsonLogCapture(Plugin):
         """Add captured log messages to error output.
         """
         # logic flow copied from Capture.formatError
-        test.capturedLogging = records = self.formatLogRecords()
+        test.capturedJsonLogging = records = self.formatLogRecords()
         # Test: do not print the errors
         return err
 
         if not records:
             return err
-        # import pudb; pudb.set_trace()
 
         ec, ev, tb = err
         return (ec, self.addCaptureToErr(ev, records), tb)
 
     def formatLogRecords(self):
-        return map(safe_str, self.handler.buffer)
+        # TODO do we need `safe_str` for json?
+        return map(safe_str, self.handler.log_buffer)
 
     def addCaptureToErr(self, ev, records):
         return '\n'.join([safe_str(ev), ln('>> begin captured logging <<')] + \

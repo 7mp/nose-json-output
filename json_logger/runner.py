@@ -102,7 +102,9 @@ class HtmlOutput(Plugin):
             details['hierarchy'] = tuple(get_hierarchy(test.test))
         if error:
             # TODO Fix in log catpruer
-            details['logging'] = [json.loads(m) for m in test.capturedLogging]
+            # import pudb; pudb.set_trace()
+            # TODO Add some warning if capturedJsonLoggin does not exist
+            details['logging'] = [json.loads(m) for m in test.capturedJsonLogging]
 
         return details
 
