@@ -53,7 +53,7 @@ setup(
     entry_points={
 	'nose.plugins.0.10': [
 	    'json_logger = json_logger.plugin:JsonLogCapture',
-	    'json_runner = json_logger.runner:HtmlOutput',
+	    'json_runner = json_logger.runner:JsonOutput',
 	    ]
 	},
     install_requires=requires,

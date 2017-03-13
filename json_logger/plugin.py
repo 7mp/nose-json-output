@@ -168,7 +168,6 @@ class JsonLogCapture(Plugin):
 
     def setupLoghandler(self):
         # setup our handler with root logger
-        # import pudb; pudb.set_trace()
         root_logger = logging.getLogger()
         if self.clear:
             if hasattr(root_logger, "handlers"):

@@ -54,18 +54,23 @@ def get_hierarchy(obj):
     return chain
 
 
-class HtmlOutput(Plugin):
-    """Output test results as ugly, unstyled html.
+class JsonOutput(Plugin):
+    """Output test results as JSON.
     """
     
-    name = 'html-output'
+    env_opt = 'NOSE_JSONOUTPUT'
+    name = 'json-output'
     score = 2 # run late
-    enabled = True
+    enabled = False
     
-    def __getattribute__(self, name):
-        # print '--- %s' % name
-        value = super(HtmlOutput, self).__getattribute__(name)
-        return value
+    def options(self, parser, env):
+        """Register commandline options.
+        """
+        parser.add_option(
+            "--json-output", action="store_true",
+            default=env.get(self.env_opt), dest="jsonoutput",
+            help="Enable outputting results as JSON"
+                 " [%s]" % self.env_opt)
 
     def emit(self, **msg):
         try:
@@ -78,14 +83,21 @@ class HtmlOutput(Plugin):
             import pudb; pudb.set_trace()
 
     def __init__(self):
-        super(HtmlOutput, self).__init__()
+        super(JsonOutput, self).__init__()
         # TODO Add some information about the code version
         self.test_run_id = {'test_run_id': 42}
         # self.emit(**self.test_run_id)
     
     def configure(self, options, conf):
         self.conf = conf
-        self.enabled = True
+        # Disable if explicitly disabled, or if logging is
+        # configured via logging config file
+        if options.jsonoutput: # and not conf.loggingConfig:
+            # Automatically activate JsonLogCapture
+            options.jsonlogcapture = True
+            # TODO Clearing doesn't seem to fully work. It probably should be done earlier?
+            options.jsonlogcapture_clear = True
+            self.enabled = True
 
     def get_test_message(self, test):
         msg = {
